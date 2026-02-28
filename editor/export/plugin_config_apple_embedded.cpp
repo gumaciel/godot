@@ -207,6 +207,25 @@ PluginConfigAppleEmbedded PluginConfigAppleEmbedded::load_plugin_config(Ref<Conf
 		plugin_config.linker_flags = config_file->get_value(PluginConfigAppleEmbedded::DEPENDENCIES_SECTION, PluginConfigAppleEmbedded::DEPENDENCIES_LINKER_FLAGS, Vector<String>());
 	}
 
+	if (config_file->has_section(PluginConfigAppleEmbedded::SPM_DEPENDENCIES_SECTION)) {
+		Array packages = config_file->get_value(PluginConfigAppleEmbedded::SPM_DEPENDENCIES_SECTION, PluginConfigAppleEmbedded::SPM_DEPENDENCIES_PACKAGES_KEY, Array());
+		for (int i = 0; i < packages.size(); i++) {
+			Dictionary package_config = packages[i];
+			PluginConfigAppleEmbedded::SPMPackage package;
+			package.url = package_config.get("url", String());
+			package.version = package_config.get("version", String());
+			package.exact_version = package_config.get("exact_version", String());
+			package.branch = package_config.get("branch", String());
+			package.revision = package_config.get("revision", String());
+
+			Array products = package_config.get("products", Array());
+			for (int j = 0; j < products.size(); j++) {
+				package.products.push_back(products[j]);
+			}
+			plugin_config.spm_packages.push_back(package);
+		}
+	}
+
 	if (config_file->has_section(PluginConfigAppleEmbedded::PLIST_SECTION)) {
 		Vector<String> keys = config_file->get_section_keys(PluginConfigAppleEmbedded::PLIST_SECTION);
 

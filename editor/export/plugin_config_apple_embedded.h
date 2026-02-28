@@ -66,6 +66,9 @@ struct PluginConfigAppleEmbedded {
 	inline static const char *DEPENDENCIES_FILES_KEY = "files";
 	inline static const char *DEPENDENCIES_LINKER_FLAGS = "linker_flags";
 
+	inline static const char *SPM_DEPENDENCIES_SECTION = "spm_dependencies";
+	inline static const char *SPM_DEPENDENCIES_PACKAGES_KEY = "packages";
+
 	inline static const char *PLIST_SECTION = "plist";
 
 	enum PlistItemType {
@@ -80,6 +83,15 @@ struct PluginConfigAppleEmbedded {
 	struct PlistItem {
 		PlistItemType type;
 		String value;
+	};
+
+	struct SPMPackage {
+		String url;
+		String version;
+		String exact_version;
+		String branch;
+		String revision;
+		Vector<String> products;
 	};
 
 	// Set to true when the config file is properly loaded.
@@ -103,6 +115,9 @@ struct PluginConfigAppleEmbedded {
 	Vector<String> capabilities;
 
 	Vector<String> linker_flags;
+
+	// Optional spm_dependencies section
+	Vector<SPMPackage> spm_packages;
 
 	// Optional plist section
 	// String value is default value.
