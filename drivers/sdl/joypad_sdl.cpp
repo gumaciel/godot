@@ -42,6 +42,12 @@
 #include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_joystick.h>
 
+#if defined(IOS_ENABLED) || defined(VISIONOS_ENABLED)
+extern "C" __attribute__((weak)) char *SDL_GetPrefPath(const char *org, const char *app) {
+	return nullptr;
+}
+#endif
+
 // Macro to skip the SDL joystick event handling if the device is an SDL gamepad, because
 // there are separate events for SDL gamepads
 #define SKIP_EVENT_FOR_GAMEPAD \

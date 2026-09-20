@@ -876,6 +876,10 @@ void MDCommandBuffer::_copy_texture_buffer(CopySource p_source,
 			bytesPerImg = 0;
 		}
 
+		if (texture->textureType() == MTL::TextureTypeCube && region.texture_subresource.layer >= 6) {
+			continue;
+		}
+
 		if (p_source == CopySource::Buffer) {
 			enc->copyFromBuffer(buffer->buffer.get(), region.buffer_offset,
 					bytesPerRow, bytesPerImg, txt_size,

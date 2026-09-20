@@ -38,6 +38,7 @@
 
 #include "modules/modules_enabled.gen.h"
 
+#include <TargetConditionals.h>
 #include <objc/message.h>
 #include <os/log.h>
 #include <os/signpost.h>
@@ -254,11 +255,15 @@ public:
 		front = (front + 1) % frame_buffers.size();
 
 		if (drawable != nullptr) {
+#if TARGET_OS_SIMULATOR
+			p_cmd_buffer->get_command_buffer()->presentDrawable(drawable);
+#else
 			if (vsync_mode != DisplayServerEnums::VSYNC_DISABLED) {
 				p_cmd_buffer->get_command_buffer()->presentDrawableAfterMinimumDuration(drawable, present_minimum_duration);
 			} else {
 				p_cmd_buffer->get_command_buffer()->presentDrawable(drawable);
 			}
+#endif
 		}
 	}
 
@@ -604,3 +609,11 @@ void RenderingContextDriverMetal::surface_destroy(SurfaceID p_surface) {
 	Surface *surface = (Surface *)(p_surface);
 	memdelete(surface);
 }
+
+#if TARGET_OS_SIMULATOR
+// Weak stubs for symbols missing in the iOS Simulator's Metal framework to satisfy the linker.
+extern "C" {
+__attribute__((weak)) void *MTLIOErrorDomain = nullptr;
+__attribute__((weak)) void *MTLTensorDomain = nullptr;
+}
+#endif

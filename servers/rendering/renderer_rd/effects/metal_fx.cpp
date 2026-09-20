@@ -36,16 +36,21 @@
 #include "drivers/metal/rendering_device_driver_metal3.h"
 #include "servers/rendering/renderer_rd/storage_rd/render_scene_buffers_rd.h"
 
+#include <TargetConditionals.h>
+#if !TARGET_OS_SIMULATOR
 #include <MetalFX/MetalFX.hpp>
+#endif
 
 using namespace RendererRD;
 
 #pragma mark - Spatial Scaler
 
 MFXSpatialContext::~MFXSpatialContext() {
+#if !TARGET_OS_SIMULATOR
 	if (scaler) {
 		scaler->release();
 	}
+#endif
 }
 
 MFXSpatialEffect::MFXSpatialEffect() {
@@ -55,6 +60,7 @@ MFXSpatialEffect::~MFXSpatialEffect() {
 }
 
 void MFXSpatialEffect::callback(RDD *p_driver, RDD::CommandBufferID p_command_buffer, CallbackArgs *p_userdata) {
+#if !TARGET_OS_SIMULATOR
 	MDCommandBufferBase *obj = (MDCommandBufferBase *)(p_command_buffer.id);
 	obj->end();
 
@@ -71,15 +77,19 @@ void MFXSpatialEffect::callback(RDD *p_driver, RDD::CommandBufferID p_command_bu
 	obj->retain_resource(scaler);
 
 	CallbackArgs::free(&p_userdata);
+#endif
 }
 
 void MFXSpatialEffect::ensure_context(Ref<RenderSceneBuffersRD> p_render_buffers) {
+#if !TARGET_OS_SIMULATOR
 	p_render_buffers->ensure_mfx(this);
+#endif
 }
 
 void MFXSpatialEffect::process(Ref<RenderSceneBuffersRD> p_render_buffers, RID p_src, RID p_dst) {
+#if !TARGET_OS_SIMULATOR
 	MFXSpatialContext *ctx = p_render_buffers->get_mfx_spatial_context();
-	DEV_ASSERT(ctx); // this should have been done by the caller via ensure_context
+	ERR_FAIL_NULL(ctx);
 
 	CallbackArgs *userdata = args_allocator.alloc(
 			this,
@@ -91,9 +101,11 @@ void MFXSpatialEffect::process(Ref<RenderSceneBuffersRD> p_render_buffers, RID p
 		{ .rid = p_dst, .usage = RD::CALLBACK_RESOURCE_USAGE_STORAGE_IMAGE_READ_WRITE }
 	};
 	RD::get_singleton()->driver_callback_add((RDD::DriverCallback)MFXSpatialEffect::callback, userdata, VectorView<RD::CallbackResource>(res, 2));
+#endif
 }
 
 MFXSpatialContext *MFXSpatialEffect::create_context(CreateParams p_params) const {
+#if !TARGET_OS_SIMULATOR
 	DEV_ASSERT(RD::get_singleton()->has_feature(RD::SUPPORTS_METALFX_SPATIAL));
 
 	RenderingDeviceDriverMetal *rdd = (RenderingDeviceDriverMetal *)RD::get_singleton()->get_device_driver();
@@ -115,6 +127,9 @@ MFXSpatialContext *MFXSpatialEffect::create_context(CreateParams p_params) const
 	context->scaler = desc->newSpatialScaler(dev);
 
 	return context;
+#else
+	return nullptr;
+#endif
 }
 
 #ifdef METAL_MFXTEMPORAL_ENABLED

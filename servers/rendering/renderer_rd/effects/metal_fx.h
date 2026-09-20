@@ -30,7 +30,9 @@
 
 #pragma once
 
-#if defined(METAL_ENABLED) && !defined(VISIONOS_ENABLED)
+#include <TargetConditionals.h>
+
+#if defined(METAL_ENABLED) && !defined(VISIONOS_ENABLED) && !TARGET_OS_SIMULATOR
 #define METAL_MFXTEMPORAL_ENABLED
 #endif
 

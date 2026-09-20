@@ -61,6 +61,7 @@
 #include "drivers/metal/rendering_context_driver_metal.h"
 #include "drivers/metal/rendering_shader_container_metal.h"
 
+#include <TargetConditionals.h>
 #include <Metal/Metal.hpp>
 #include <objc/message.h>
 #include <objc/objc.h>
@@ -250,7 +251,14 @@ bool RenderingDeviceDriverMetal::is_valid_linear(const TextureFormat &p_format) 
 
 RDD::TextureID RenderingDeviceDriverMetal::texture_create(const TextureFormat &p_format, const TextureView &p_view) {
 	NS::SharedPtr<MTL::TextureDescriptor> desc = NS::TransferPtr(MTL::TextureDescriptor::alloc()->init());
-	desc->setTextureType(TEXTURE_TYPE[p_format.texture_type]);
+
+	MTL::TextureType texture_type = TEXTURE_TYPE[p_format.texture_type];
+	if (p_format.texture_type == TEXTURE_TYPE_CUBE_ARRAY && !device_properties->features.imageCubeArray) {
+		WARN_PRINT_ONCE("Cube array textures are not supported on this device or simulator; falling back to single cubemap.");
+		texture_type = MTL::TextureTypeCube;
+	}
+
+	desc->setTextureType(texture_type);
 
 	PixelFormats &formats = *pixel_formats;
 	desc->setPixelFormat((MTL::PixelFormat)formats.getMTLPixelFormat(p_format.format));
@@ -265,7 +273,9 @@ RDD::TextureID RenderingDeviceDriverMetal::texture_create(const TextureFormat &p
 			p_format.texture_type == TEXTURE_TYPE_2D_ARRAY) {
 		desc->setArrayLength(p_format.array_layers);
 	} else if (p_format.texture_type == TEXTURE_TYPE_CUBE_ARRAY) {
-		desc->setArrayLength(p_format.array_layers / 6);
+		if (device_properties->features.imageCubeArray) {
+			desc->setArrayLength(p_format.array_layers / 6);
+		}
 	}
 
 	// TODO(sgc): Evaluate lossy texture support (perhaps as a project option?)
@@ -2875,6 +2885,11 @@ RenderingDeviceDriverMetal::RenderingDeviceDriverMetal(RenderingContextDriverMet
 		sync_mode = HazardTracking;
 	}
 
+#if TARGET_OS_SIMULATOR
+	// Simulator MTLSimDevice asserts on shared heaps, so use HazardTracking directly without heaps.
+	sync_mode = HazardTracking;
+#endif
+
 #if TARGET_OS_OSX
 	if (String res = OS::get_singleton()->get_environment("GODOT_MTL_SHADER_LOAD_STRATEGY"); res == U"lazy") {
 		_shader_load_strategy = ShaderLoadStrategy::LAZY;
@@ -3054,8 +3069,19 @@ Error RenderingDeviceDriverMetal::_initialize(uint32_t p_device_index, uint32_t 
 		print_verbose("- Metal multiview not supported");
 	}
 
-	// The Metal renderer requires Apple4 family. This is 2017 era A11 chips and newer.
-	if (device_properties->features.highestFamily < MTL::GPUFamilyApple4) {
+	// The Metal renderer requires Apple4 family for physical devices, but allows Apple2 on simulator or with override.
+#if TARGET_OS_SIMULATOR
+	bool is_simulator = true;
+#else
+	bool is_simulator = false;
+#endif
+
+	MTL::GPUFamily min_family = is_simulator ? MTL::GPUFamilyApple2 : MTL::GPUFamilyApple4;
+	if (OS::get_singleton()->get_environment("GODOT_MTL_ALLOW_LOWER_FAMILY") == "1") {
+		min_family = MTL::GPUFamilyApple2;
+	}
+
+	if (device_properties->features.highestFamily < min_family) {
 		String error_string = vformat("Your Apple GPU does not support the following features, which are required to use Metal-based renderers in Godot:\n\n");
 		if (!device_properties->features.imageCubeArray) {
 			error_string += "- No support for image cube arrays.\n";
@@ -3069,6 +3095,10 @@ Error RenderingDeviceDriverMetal::_initialize(uint32_t p_device_index, uint32_t 
 #endif
 
 		return ERR_CANT_CREATE;
+	}
+
+	if (!device_properties->features.imageCubeArray) {
+		print_verbose("Metal: Image cube arrays not supported on this device; using cubemap fallback.");
 	}
 
 	return OK;

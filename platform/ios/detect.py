@@ -153,19 +153,20 @@ def configure(env: "SConsEnvironment"):
     env.Prepend(CPPPATH=["#platform/ios"])
     env.Append(CPPDEFINES=["IOS_ENABLED", "APPLE_EMBEDDED_ENABLED", "UNIX_ENABLED", "COREAUDIO_ENABLED"])
 
-    if env["metal"] and env["simulator"]:
-        print_warning("iOS Simulator does not support the Metal rendering driver")
-        env["metal"] = False
-
     if env["metal"]:
         env.AppendUnique(CPPDEFINES=["METAL_ENABLED"])
         env.Prepend(
             CPPPATH=[
                 "$APPLE_SDK_PATH/System/Library/Frameworks/Metal.framework/Headers",
-                "$APPLE_SDK_PATH/System/Library/Frameworks/MetalFX.framework/Headers",
                 "$APPLE_SDK_PATH/System/Library/Frameworks/QuartzCore.framework/Headers",
             ]
         )
+        if not env["simulator"]:
+            env.Prepend(
+                CPPPATH=[
+                    "$APPLE_SDK_PATH/System/Library/Frameworks/MetalFX.framework/Headers",
+                ]
+            )
         env.Prepend(CPPPATH=["#thirdparty/spirv-cross"])
 
     if env["vulkan"] and env["simulator"]:
