@@ -198,6 +198,9 @@ struct SceneData {
 
 	mediump vec4 ambient_light_color_energy;
 
+	mediump vec3 reflection_color;
+	bool use_reflection_color;
+
 	mediump float ambient_color_sky_mix;
 	uint directional_shadow_count;
 	float emissive_exposure_normalization;
@@ -483,12 +486,20 @@ struct MultiviewData {
 	highp mat4 projection_matrix_view[MAX_VIEWS];
 	highp mat4 inv_projection_matrix_view[MAX_VIEWS];
 	highp vec4 eye_offset[MAX_VIEWS];
+	highp uint view_index;
+	highp uint pad0;
+	highp uint pad1;
+	highp uint pad2;
 };
 
 layout(std140) uniform MultiviewDataBlock { // ubo:9
 	MultiviewData data;
 }
 multiview_data_block;
+
+#ifdef EMULATE_MULTIVIEW
+#define ViewIndex (multiview_data_block.data.view_index)
+#endif
 
 #ifdef RENDER_MOTION_VECTORS
 layout(std140) uniform PrevMultiviewDataBlock { // ubo:14
@@ -1217,6 +1228,9 @@ struct SceneData {
 
 	mediump vec4 ambient_light_color_energy;
 
+	mediump vec3 reflection_color;
+	bool use_reflection_color;
+
 	mediump float ambient_color_sky_mix;
 	uint directional_shadow_count;
 	float emissive_exposure_normalization;
@@ -1263,12 +1277,20 @@ struct MultiviewData {
 	highp mat4 projection_matrix_view[MAX_VIEWS];
 	highp mat4 inv_projection_matrix_view[MAX_VIEWS];
 	highp vec4 eye_offset[MAX_VIEWS];
+	highp uint view_index;
+	highp uint pad0;
+	highp uint pad1;
+	highp uint pad2;
 };
 
 layout(std140) uniform MultiviewDataBlock { // ubo:9
 	MultiviewData data;
 }
 multiview_data_block;
+
+#ifdef EMULATE_MULTIVIEW
+#define ViewIndex (multiview_data_block.data.view_index)
+#endif
 #endif
 
 uniform highp mat4 world_transform;
@@ -2555,6 +2577,9 @@ void main() {
 		specular_light = textureLod(radiance_map, ref_vec, sqrt(roughness) * RADIANCE_MAX_LOD).rgb;
 		specular_light = srgb_to_linear(specular_light);
 		specular_light *= horizon * horizon;
+		specular_light *= scene_data_block.data.ambient_light_color_energy.a;
+	} else if (scene_data_block.data.use_reflection_color) {
+		specular_light = scene_data_block.data.reflection_color.rgb;
 		specular_light *= scene_data_block.data.ambient_light_color_energy.a;
 	}
 #endif // USE_RADIANCE_MAP
