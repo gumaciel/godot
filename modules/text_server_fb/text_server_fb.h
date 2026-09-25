@@ -553,7 +553,7 @@ class TextServerFallback : public TextServerExtension {
 		}
 	};
 	mutable HashMap<SystemFontKey, SystemFontCache, SystemFontKeyHasher> system_fonts;
-	mutable HashMap<String, PackedByteArray> system_font_data;
+	mutable HashMap<String, Ref<SystemFontBuffer>> system_font_data;
 
 	void _generate_runs(ShapedTextDataFallback *p_sd) const;
 	void _realign(ShapedTextDataFallback *p_sd) const;

@@ -677,7 +677,7 @@ class TextServerAdvanced : public TextServerExtension {
 		}
 	};
 	mutable HashMap<SystemFontKey, SystemFontCache, SystemFontKeyHasher> system_fonts;
-	mutable HashMap<String, PackedByteArray> system_font_data;
+	mutable HashMap<String, Ref<SystemFontBuffer>> system_font_data;
 
 	void _update_chars(ShapedTextDataAdvanced *p_sd) const;
 	void _generate_runs(ShapedTextDataAdvanced *p_sd) const;

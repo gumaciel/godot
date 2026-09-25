@@ -4537,14 +4537,17 @@ RID TextServerFallback::_find_sys_font_for_text(const RID &p_fdef, const String 
 				}
 
 				if (!system_font_data.has(E)) {
-					system_font_data[E] = FileAccess::get_file_as_bytes(E);
+					system_font_data[E] = SystemFontBuffer::create(E);
 				}
 
-				const PackedByteArray &font_data = system_font_data[E];
+				const Ref<SystemFontBuffer> &font_buffer = system_font_data[E];
+				if (font_buffer.is_null() || !font_buffer->is_valid()) {
+					continue;
+				}
 
 				SystemFontCacheRec sysf;
 				sysf.rid = _create_font();
-				_font_set_data_ptr(sysf.rid, font_data.ptr(), font_data.size());
+				_font_set_data_ptr(sysf.rid, font_buffer->get_data(), font_buffer->get_size());
 				if (!_font_validate(sysf.rid)) {
 					_free_rid(sysf.rid);
 					continue;

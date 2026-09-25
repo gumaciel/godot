@@ -35,6 +35,7 @@
 #include "core/templates/rid.h"
 #include "core/variant/native_ptr.h"
 #include "core/variant/variant.h"
+#include "servers/text/system_font_buffer.h"
 
 template <typename T>
 class TypedArray;
